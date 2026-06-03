@@ -1,0 +1,63 @@
+[remap]
+
+importer="scene"
+importer_version=1
+type="PackedScene"
+uid="uid://dhx8q1q1xol8h"
+path="res://.godot/imported/map1.glb-929d61a6adb83206f5d7fa3bba95f28d.scn"
+
+[deps]
+
+source_file="res://map1.glb"
+dest_files=["res://.godot/imported/map1.glb-929d61a6adb83206f5d7fa3bba95f28d.scn"]
+
+[params]
+
+nodes/root_type=""
+nodes/root_name=""
+nodes/root_script=null
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
+nodes/use_node_type_suffixes=true
+meshes/ensure_tangents=true
+meshes/generate_lods=true
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+animation/trimming=false
+animation/remove_immutable_tracks=true
+animation/import_rest_as_RESET=false
+import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
+_subresources={
+"meshes": {
+"Sketchfab_Scene_Object_9": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 2,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": false,
+"save_to_file/fallback_path": "",
+"save_to_file/path": ""
+}
+},
+"nodes": {
+"PATH:Sketchfab_model/root/GLTF_SceneRootNode/Sketchfab_model_0/arena (1)_fbx_1/RootNode_2/arena (1)_3/Combined_Mesh__root__scene__9_22/Combined_Mesh__root__scene__9_BricksDecal-sharedassets24_assets_split0-23_0_23/Object_36": {
+"generate/physics": true,
+"import/skip_import": true,
+"mesh_instance/cast_shadow": 0,
+"physics/physics_material_override": Object(PhysicsMaterial,"resource_local_to_scene":false,"resource_name":"","friction":0.0,"rough":false,"bounce":0.0,"absorbent":false,"script":null)
+
+}
+}
+}
+gltf/naming_version=2
+gltf/embedded_image_handling=1

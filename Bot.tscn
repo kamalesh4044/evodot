@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://dxea517v81r3d"]
+
+[ext_resource type="Script" uid="uid://c0d7kokpb5ism" path="res://Bot.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://kbmcqucim74n" path="res://models/low_poly_soldier.glb" id="3"]
+[ext_resource type="PackedScene" uid="uid://cjwjq77yuvml" path="res://models/ak-74.glb" id="4"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_bot"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_bot"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="Bot" type="CharacterBody3D" unique_id=501612590 groups=["bots"]]
+collision_layer = 4
+collision_mask = 7
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1282233539]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_bot")
+
+[node name="low_poly_soldier" parent="." unique_id=814968151 instance=ExtResource("3")]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
+
+[node name="TPWeaponPivot" type="Node3D" parent="low_poly_soldier" unique_id=50001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.85, 0.25)
+
+[node name="ak-74" parent="low_poly_soldier/TPWeaponPivot" unique_id=50002 instance=ExtResource("4")]
+transform = Transform3D(0.095, 0, 0, 0, 0.095, 0, 0, 0, 0.095, 0, 0, 0)
+
+[node name="WeaponPivot" type="Node3D" parent="." unique_id=1633450272]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.25, -0.4)
+
+[node name="ak-74" parent="WeaponPivot" unique_id=417164712 instance=ExtResource("4")]
+transform = Transform3D(0.14, 0, 0, 0, 0.14, 0, 0, 0, 0.14, 0, -0.2, 0)
+
+[node name="MuzzleFlash" type="OmniLight3D" parent="WeaponPivot" unique_id=1969101443]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, -0.5)
+visible = false
+light_color = Color(1, 0.8, 0.2, 1)
+light_energy = 5.0
+shadow_enabled = true
+omni_range = 10.0
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1173954325]
+avoidance_enabled = true
+
+[node name="SightRay" type="RayCast3D" parent="." unique_id=1457659383]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+target_position = Vector3(0, 0, -20)
+collision_mask = 3
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=50000002]
+replication_config = SubResource("SceneReplicationConfig_bot")

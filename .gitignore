@@ -1,0 +1,14 @@
+# Godot 4+ specific ignores
+.godot/
+.godot_user/
+*.translation
+*.gdignore
+*.import/
+export_presets.cfg
+*.mono/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
