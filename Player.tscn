@@ -27,6 +27,9 @@ properties/3/replication_mode = 2
 properties/4/path = NodePath(".:synced_health")
 properties/4/spawn = true
 properties/4/replication_mode = 1
+properties/5/path = NodePath(".:synced_anim_state")
+properties/5/spawn = true
+properties/5/replication_mode = 1
 
 [node name="Player" type="CharacterBody3D" unique_id=183166590]
 collision_layer = 2

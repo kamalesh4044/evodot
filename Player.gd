@@ -63,7 +63,7 @@ func _update_weapon_models(index: int):
 	for i in range(weapon_models.size()):
 		if is_instance_valid(weapon_models[i]):
 			weapon_models[i].visible = (i == index)
-		if is_instance_valid(tp_weapon_models[i]):
+		if i < tp_weapon_models.size() and is_instance_valid(tp_weapon_models[i]):
 			tp_weapon_models[i].visible = (i == index)
 # Recoil
 const RECOIL_RECOVERY := 8.0
@@ -96,12 +96,6 @@ const VIEWMODEL_LERP := 13.0
 	$CameraPivot/WeaponPivot/"ak-74",
 	$CameraPivot/WeaponPivot/thompson,
 	$CameraPivot/WeaponPivot/shotgun
-]
-
-@onready var tp_weapon_models = [
-	$MeshCore/low_poly_soldier/TPWeaponPivot/"ak-74",
-	$MeshCore/low_poly_soldier/TPWeaponPivot/thompson,
-	$MeshCore/low_poly_soldier/TPWeaponPivot/shotgun
 ]
 @onready var muzzle_flash = $CameraPivot/WeaponPivot/MuzzleFlash
 @onready var mesh_core: Node3D = $MeshCore
@@ -148,6 +142,32 @@ const RESPAWN_TIME := 3.0
 @export var synced_rotation_y: float = 0.0
 @export var synced_camera_x: float = 0.0
 @export var synced_health: int = 100
+@export var synced_anim_state: String = "Idle"
+
+# Animation vars
+const THIRD_PERSON_MODEL_SCALE := 0.33
+const THIRD_PERSON_ARMATURE_MODEL_SCALE := 33.0
+const THIRD_PERSON_WEAPON_SCALE := 0.008
+const TP_WEAPON_SCENES: Array[PackedScene] = [
+	preload("res://models/ak-74.glb"),
+	preload("res://models/thompson.glb"),
+	preload("res://models/shotgun.glb")
+]
+const THIRD_PERSON_ANIM_SCENES := {
+	"Idle": "res://animation/Rifle Idle (2).glb",
+	"Run": "res://animation/Rifle Run (3).glb",
+	"Jump": "res://animation/Rifle Jump (1).glb",
+	"Fire": "res://animation/Firing Rifle (3).glb",
+}
+
+var anim_player: AnimationPlayer
+var mesh_root: Node3D
+var tp_weapon_pivot: Node3D
+var tp_weapon_models: Array[Node3D] = []
+var anim_roots: Dictionary = {}
+var anim_players: Dictionary = {}
+var current_visible_anim: String = ""
+var fire_anim_timer: float = 0.0
 
 # HUD reference
 var hud_script: Node = null
@@ -158,6 +178,7 @@ func _enter_tree():
 func _ready():
 	add_to_group("players")
 	_configure_weapon_model_transforms()
+	_setup_animations()
 	synced_position = global_position
 	synced_rotation_y = rotation.y
 	synced_camera_x = camera_pivot.rotation.x
@@ -221,16 +242,16 @@ func _configure_weapon_model_transforms():
 			weapon.scale = fp_scales[i]
 
 	var tp_positions = [
-		Vector3(0.18, 0.12, 0.05),
-		Vector3(0.18, 0.12, 0.05),
-		Vector3(0.2, 0.1, 0.05),
+		Vector3(0.06, 0.04, 0.02),
+		Vector3(0.06, 0.04, 0.02),
+		Vector3(0.07, 0.035, 0.02),
 	]
 	for i in range(min(tp_weapon_models.size(), tp_positions.size())):
 		var weapon = tp_weapon_models[i]
 		if is_instance_valid(weapon):
 			weapon.position = tp_positions[i]
 			weapon.rotation = Vector3(0.0, deg_to_rad(180.0), 0.0)
-			weapon.scale = Vector3.ONE * 0.025
+			weapon.scale = Vector3.ONE * THIRD_PERSON_WEAPON_SCALE
 
 func _unhandled_input(event: InputEvent):
 	if not is_multiplayer_authority() or is_dead:
@@ -276,6 +297,20 @@ func _physics_process(delta: float):
 		synced_rotation_y = rotation.y
 		synced_camera_x = camera_pivot.rotation.x
 		synced_health = health
+		
+		# Determine anim state
+		var h_speed = Vector3(velocity.x, 0, velocity.z).length()
+		var target_anim = "Idle"
+		if not is_on_floor():
+			target_anim = "Jump"
+		elif h_speed > 1.0:
+			target_anim = "Run"
+			
+		if fire_anim_timer > 0:
+			target_anim = "Fire"
+			fire_anim_timer -= delta
+			
+		synced_anim_state = target_anim
 	else:
 		# Interpolate remote player
 		global_position = global_position.lerp(synced_position, 10.0 * delta)
@@ -283,6 +318,8 @@ func _physics_process(delta: float):
 		if camera_pivot:
 			camera_pivot.rotation.x = lerp(camera_pivot.rotation.x, synced_camera_x, 10.0 * delta)
 		health = synced_health
+
+	_play_third_person_animation(synced_anim_state)
 
 # ──────────────────────────────────────────
 # GRAVITY & JUMP
@@ -411,7 +448,7 @@ func switch_weapon(index: int):
 	for i in range(weapon_models.size()):
 		if is_instance_valid(weapon_models[i]):
 			weapon_models[i].visible = (i == index)
-		if is_instance_valid(tp_weapon_models[i]):
+		if i < tp_weapon_models.size() and is_instance_valid(tp_weapon_models[i]):
 			tp_weapon_models[i].visible = (i == index)
 	_update_hud()
 
@@ -436,6 +473,7 @@ func _handle_shooting(delta: float):
 		_start_reload()
 
 func _fire():
+	fire_anim_timer = 0.3
 	var weapon = weapons[current_weapon_index]
 	var state = weapon_states[current_weapon_index]
 	state["ammo"] -= 1
@@ -764,3 +802,142 @@ func _update_hud():
 		var w = weapons[current_weapon_index]
 		var s = weapon_states[current_weapon_index]
 		hud_script.update_hud(health, max_health, s["ammo"], w["max_ammo"], s["reserve"], is_reloading, reload_timer, w["reload_time"], is_dead, respawn_timer)
+
+
+# ──────────────────────────────────────────
+# ANIMATIONS SETUP
+# ──────────────────────────────────────────
+func _reset_mesh_root_pose():
+	for state in anim_roots:
+		var root := anim_roots[state] as Node3D
+		if not is_instance_valid(root):
+			continue
+		root.position = Vector3.ZERO
+		root.rotation = Vector3.ZERO
+		root.scale = Vector3.ONE * _get_third_person_scale(root)
+
+func _get_third_person_scale(root: Node3D) -> float:
+	var armature = root.get_node_or_null("Armature")
+	if armature and armature is Node3D and is_equal_approx((armature as Node3D).scale.x, 0.01):
+		return THIRD_PERSON_ARMATURE_MODEL_SCALE
+	return THIRD_PERSON_MODEL_SCALE
+
+func _build_third_person_weapon_rig():
+	tp_weapon_models.clear()
+	if not is_instance_valid(mesh_core):
+		return
+
+	var old_pivot = mesh_core.get_node_or_null("TPWeaponPivot")
+	if old_pivot:
+		old_pivot.queue_free()
+
+	tp_weapon_pivot = Node3D.new()
+	tp_weapon_pivot.name = "TPWeaponPivot"
+	tp_weapon_pivot.position = Vector3(-0.12, 1.08, 0.08)
+	mesh_core.add_child(tp_weapon_pivot)
+
+	for scene in TP_WEAPON_SCENES:
+		var weapon := scene.instantiate() as Node3D
+		if not weapon:
+			continue
+		tp_weapon_pivot.add_child(weapon)
+		tp_weapon_models.append(weapon)
+
+	_configure_weapon_model_transforms()
+	_update_weapon_models(current_weapon_index)
+
+func _sanitize_animation(anim: Animation, base_skeleton_path: String = "") -> Animation:
+	var tracks_to_remove: Array[int] = []
+	for i in range(anim.get_track_count()):
+		var p_str = String(anim.track_get_path(i))
+		if not ":" in p_str:
+			continue
+		var node_path = p_str.get_slice(":", 0)
+		var subpath = p_str.get_slice(":", 1)
+		if node_path == "." or subpath in ["position", "rotation", "scale", "transform", "rotation_degrees"]:
+			tracks_to_remove.append(i)
+		elif base_skeleton_path != "":
+			anim.track_set_path(i, NodePath(base_skeleton_path + ":" + subpath))
+
+	tracks_to_remove.reverse()
+	for i in tracks_to_remove:
+		anim.remove_track(i)
+	return anim
+
+func _get_first_imported_animation_player(root: Node) -> AnimationPlayer:
+	var ap_list = root.find_children("*", "AnimationPlayer", true, false)
+	if ap_list.size() == 0:
+		return null
+	return ap_list[0]
+
+func _play_third_person_animation(state: String):
+	if not anim_roots.has(state):
+		state = "Idle"
+	if current_visible_anim != state:
+		for anim_state in anim_roots:
+			var root := anim_roots[anim_state] as Node3D
+			if is_instance_valid(root):
+				root.visible = (anim_state == state)
+		current_visible_anim = state
+		mesh_root = anim_roots[state]
+		anim_player = anim_players.get(state)
+
+	var player := anim_players.get(state) as AnimationPlayer
+	if not is_instance_valid(player):
+		return
+
+	var desired_anim = ""
+	for animation_name in player.get_animation_list():
+		if not "RESET" in animation_name:
+			desired_anim = animation_name
+			break
+	if desired_anim == "":
+		return
+	if player.current_animation != desired_anim or not player.is_playing():
+		player.play(desired_anim, 0.15)
+	_reset_mesh_root_pose()
+
+func _setup_animations():
+	if not mesh_core: return
+	
+	var old_mesh = mesh_core.get_node_or_null("low_poly_soldier")
+	var mat = null
+	if old_mesh:
+		var mi = old_mesh.find_children("*", "MeshInstance3D", true, false)
+		if mi.size() > 0:
+			mat = mi[0].get_active_material(0)
+		mesh_core.remove_child(old_mesh)
+		old_mesh.queue_free()
+
+	anim_roots.clear()
+	anim_players.clear()
+	for state in THIRD_PERSON_ANIM_SCENES:
+		var scene = load(THIRD_PERSON_ANIM_SCENES[state])
+		if not scene:
+			continue
+		var root := scene.instantiate() as Node3D
+		if not root:
+			continue
+		root.name = "Anim" + state
+		root.visible = false
+		mesh_core.add_child(root)
+		mesh_root = root
+		_reset_mesh_root_pose()
+
+		if mat:
+			var new_mis = root.find_children("*", "MeshInstance3D", true, false)
+			for mesh_instance in new_mis:
+				mesh_instance.set_surface_override_material(0, mat)
+
+		var imported_ap = _get_first_imported_animation_player(root)
+		if imported_ap:
+			anim_players[state] = imported_ap
+		anim_roots[state] = root
+
+	_build_third_person_weapon_rig()
+	_play_third_person_animation("Idle")
+				
+	var sync = get_node_or_null("MultiplayerSynchronizer")
+	if sync and sync.replication_config:
+		if not sync.replication_config.has_property(NodePath(".:synced_anim_state")):
+			sync.replication_config.add_property(NodePath(".:synced_anim_state"))

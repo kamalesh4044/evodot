@@ -7,6 +7,7 @@ const SPEED = 4.0
 const FIRE_RATE = 0.5
 const DAMAGE = 15
 const MAX_HEALTH = 100
+const GRAVITY = 15.0
 
 var health = MAX_HEALTH
 var fire_timer = 0.0
@@ -98,7 +99,9 @@ func _physics_process(delta):
 
 	# Add gravity
 	if not is_on_floor():
-		velocity.y -= 9.8 * delta
+		velocity.y -= GRAVITY * delta
+	else:
+		velocity.y = -0.1
 
 	move_and_slide()
 
@@ -114,11 +117,17 @@ func _find_closest_player() -> Node3D:
 	var closest = null
 	var min_dist = 9999.0
 	for p in players:
-		if p.health > 0:
-			var d = global_position.distance_to(p.global_position)
-			if d < min_dist:
-				min_dist = d
-				closest = p
+		if not is_instance_valid(p):
+			continue
+		var player_health = p.get("health")
+		if player_health == null or player_health <= 0:
+			continue
+		if p.global_position.y < -20.0:
+			continue
+		var d = global_position.distance_to(p.global_position)
+		if d < min_dist:
+			min_dist = d
+			closest = p
 	return closest
 
 func _check_line_of_sight(target: Node3D) -> bool:
