@@ -62,9 +62,13 @@ func _update_weapon_models(index: int):
 		return
 	for i in range(weapon_models.size()):
 		if is_instance_valid(weapon_models[i]):
-			weapon_models[i].visible = (i == index)
-		if i < tp_weapon_models.size() and is_instance_valid(tp_weapon_models[i]):
-			tp_weapon_models[i].visible = (i == index)
+			# Only show first-person weapons if we are the local player!
+			weapon_models[i].visible = (i == index and is_multiplayer_authority())
+		if is_instance_valid(tp_weapon_models[i]):
+			# The Mixamo model already holds a gun, so we don't need these anymore!
+			tp_weapon_models[i].visible = false
+	_update_hud()
+
 # Recoil
 const RECOIL_RECOVERY := 8.0
 const RECOIL_RESET_TIME := 0.24
@@ -813,7 +817,7 @@ func _reset_mesh_root_pose():
 		if not is_instance_valid(root):
 			continue
 		root.position = Vector3.ZERO
-		root.rotation = Vector3.ZERO
+		root.rotation = Vector3(0, PI, 0)
 		root.scale = Vector3.ONE * _get_third_person_scale(root)
 
 func _get_third_person_scale(root: Node3D) -> float:
@@ -921,6 +925,10 @@ func _setup_animations():
 		root.name = "Anim" + state
 		root.visible = false
 		mesh_core.add_child(root)
+		
+		# Fix character facing backwards
+		root.rotation.y = PI 
+		
 		mesh_root = root
 		_reset_mesh_root_pose()
 
