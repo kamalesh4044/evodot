@@ -4,17 +4,17 @@ extends CharacterBody3D
 ## Implements: movement, camera, shooting, health, multiplayer sync
 
 # ──────────────────────────────────────────
-# MOVEMENT CONSTANTS
+# MOVEMENT CONSTANTS (Now vars so they can scale with the player size)
 # ──────────────────────────────────────────
-const BASE_SPEED := 6.2
-const SPRINT_MULT := 1.45
-const ACCEL := 18.0
-const AIR_ACCEL := 5.0
-const COUNTER_STRAFE_ACCEL := 28.0
-const FRICTION := 14.0
-const JUMP_VEL := 5.7
-const AIR_CONTROL := 1.15
-const GRAVITY := 15.0
+var BASE_SPEED := 6.2
+var SPRINT_MULT := 1.45
+var ACCEL := 18.0
+var AIR_ACCEL := 5.0
+var COUNTER_STRAFE_ACCEL := 28.0
+var FRICTION := 14.0
+var JUMP_VEL := 5.7
+var AIR_CONTROL := 1.15
+var GRAVITY := 15.0
 
 # Slide
 const SLIDE_BOOST := 1.55
@@ -149,8 +149,8 @@ const RESPAWN_TIME := 3.0
 @export var synced_anim_state: String = "Idle"
 
 # Animation vars
-const THIRD_PERSON_MODEL_SCALE := 0.33
-const THIRD_PERSON_ARMATURE_MODEL_SCALE := 33.0
+const THIRD_PERSON_MODEL_SCALE := 0.30
+const THIRD_PERSON_ARMATURE_MODEL_SCALE := 30.0
 const THIRD_PERSON_WEAPON_SCALE := 0.008
 const TP_WEAPON_SCENES: Array[PackedScene] = [
 	preload("res://models/ak-74.glb"),
@@ -183,6 +183,26 @@ func _ready():
 	add_to_group("players")
 	_configure_weapon_model_transforms()
 	_setup_animations()
+	
+	# Dynamically adjust player collision, camera height, and speeds based on scale
+	var s = THIRD_PERSON_MODEL_SCALE
+	var cam_pivot = get_node_or_null("CameraPivot")
+	if cam_pivot:
+		cam_pivot.position.y = 1.5 * s
+		
+	var col = get_node_or_null("CollisionShape3D")
+	if col and col.shape is CapsuleShape3D:
+		var cap = col.shape.duplicate()
+		cap.height = 1.8 * s
+		cap.radius = 0.4 * s
+		col.shape = cap
+		col.position.y = cap.height / 2.0
+		
+	# Scale movement variables
+	BASE_SPEED = 6.2 * s
+	JUMP_VEL = 5.7 * (s ** 0.5)
+	GRAVITY = 15.0 * s
+	ACCEL = 18.0 * s
 	synced_position = global_position
 	synced_rotation_y = rotation.y
 	synced_camera_x = camera_pivot.rotation.x
@@ -745,6 +765,7 @@ func _respawn():
 		mesh_core.visible = not is_multiplayer_authority()
 	_update_weapon_models(current_weapon_index)
 	_update_hud()
+
 
 @rpc("any_peer", "call_local")
 func heal(amount: int):
