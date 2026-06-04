@@ -13,6 +13,8 @@ signal game_state_changed(new_state: String)
 enum GameState { LOBBY, PLAYING, GAME_OVER }
 var current_state: GameState = GameState.LOBBY
 
+var pending_peer: MultiplayerPeer = null
+
 # Player data: { peer_id: { "kills": 0, "deaths": 0, "name": "Player" } }
 var player_data: Dictionary = {}
 

@@ -204,9 +204,9 @@ func _configure_weapon_model_transforms():
 		Vector3(0.13, -0.2, -0.78),
 	]
 	var fp_rotations = [
-		Vector3(0.0, deg_to_rad(180.0), 0.0),
-		Vector3(0.0, deg_to_rad(180.0), 0.0),
-		Vector3(0.0, deg_to_rad(180.0), 0.0),
+		Vector3(0.0, 0.0, 0.0),
+		Vector3(0.0, 0.0, 0.0),
+		Vector3(0.0, 0.0, 0.0),
 	]
 	var fp_scales = [
 		Vector3.ONE * 0.012,

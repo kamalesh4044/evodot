@@ -13,13 +13,30 @@ func _ready():
 		_create_box_collider(Vector3.ZERO, Vector3(50, 1, 50))
 		GameManager.spawn_points = [Vector3(0, 2, 0)]
 
+	if GameManager.pending_peer:
+		multiplayer.multiplayer_peer = GameManager.pending_peer
+		GameManager.pending_peer = null
+
 	if multiplayer.is_server():
+		# Host is already registered in Lobby, but we can do it here just in case
 		GameManager.register_player(multiplayer.get_unique_id(), "Host")
 		_spawn_player(multiplayer.get_unique_id())
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	else:
-		_request_spawn.rpc_id(1, multiplayer.get_unique_id())
+		multiplayer.connected_to_server.connect(_on_connected_to_server)
+		multiplayer.connection_failed.connect(_on_connection_failed)
+		# If somehow we are already connected (e.g. localhost is too fast)
+		if multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+			_on_connected_to_server()
+
+func _on_connected_to_server():
+	GameManager.register_player(multiplayer.get_unique_id(), "Player " + str(multiplayer.get_unique_id()))
+	_request_spawn.rpc_id(1, multiplayer.get_unique_id())
+
+func _on_connection_failed():
+	print("Failed to connect!")
+	get_tree().change_scene_to_file("res://Lobby.tscn")
 
 func _setup_map(map_node: Node):
 	var meshes: Array = []

@@ -47,5 +47,6 @@ shape = SubResource("FallBoundary")
 [node name="Players" type="Node3D" parent="." unique_id=434712245]
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=50000001]
-_spawnable_scenes = PackedStringArray("uid://cly8quhxwtcg8", "uid://dxea517v81r3d")
+_spawnable_scenes = PackedStringArray("uid://cly8quhxwtcg8", "uid://dxea517v81r3d", "uid://cly8quhxwtcg8")
 spawn_path = NodePath("../Players")
+spawn_limit = 10

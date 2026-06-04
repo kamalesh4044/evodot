@@ -42,7 +42,6 @@ shape = SubResource("CapsuleShape3D_1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=1687825091]
-transform = Transform3D(1, 0, 0, 0, 0.8953001, 0.44546354, 0, -0.44546354, 0.8953001, 0, 0, 0)
 
 [node name="WeaponPivot" type="Node3D" parent="CameraPivot" unique_id=2104671614]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, -0.25, -0.4)

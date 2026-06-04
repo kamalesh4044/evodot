@@ -3,7 +3,7 @@ extends Node3D
 const PORT = 8080
 const MAX_CLIENTS = 16
 
-var peer: WebSocketMultiplayerPeer
+var peer: ENetMultiplayerPeer
 
 # UI elements
 var canvas_layer: CanvasLayer
@@ -89,8 +89,8 @@ func _build_ui():
 	canvas_layer.add_child(bottom_stack)
 
 	address_input = LineEdit.new()
-	address_input.text = "ws://localhost:" + str(PORT)
-	address_input.placeholder_text = "ws://server-ip:" + str(PORT)
+	address_input.text = "localhost"
+	address_input.placeholder_text = "server-ip"
 	address_input.custom_minimum_size = Vector2(420, 42)
 	address_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	address_input.add_theme_font_size_override("font_size", 18)
@@ -167,14 +167,12 @@ func _on_host_pressed():
 	if peer != null: return
 	
 	status_label.text = "Starting Server..."
-	peer = WebSocketMultiplayerPeer.new()
+	peer = ENetMultiplayerPeer.new()
 	var error = peer.create_server(PORT)
 	if error == OK:
-		multiplayer.multiplayer_peer = peer
-		GameManager.register_player(multiplayer.get_unique_id(), "Host")
+		GameManager.pending_peer = peer
+		GameManager.register_player(1, "Host")
 		status_label.text = "MATCH FOUND"
-		# Auto-start after a short delay
-		await get_tree().create_timer(1.0).timeout
 		_start_game()
 	else:
 		status_label.text = "Failed to start server"
@@ -184,15 +182,17 @@ func _on_join_pressed():
 	if peer != null: return
 	
 	status_label.text = "Connecting to Server..."
-	peer = WebSocketMultiplayerPeer.new()
+	peer = ENetMultiplayerPeer.new()
 	var address = address_input.text.strip_edges()
 	if address == "":
-		address = "ws://localhost:" + str(PORT)
-	if not address.begins_with("ws://") and not address.begins_with("wss://"):
-		address = "ws://" + address
-	var error = peer.create_client(address)
+		address = "localhost"
+	elif address.begins_with("ws://"):
+		address = address.replace("ws://", "").split(":")[0]
+	var error = peer.create_client(address, PORT)
 	if error == OK:
-		multiplayer.multiplayer_peer = peer
+		GameManager.pending_peer = peer
+		status_label.text = "MATCH FOUND"
+		_start_game()
 	else:
 		status_label.text = "Failed to create client"
 		peer = null
