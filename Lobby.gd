@@ -12,10 +12,8 @@ var name_input: LineEdit
 var address_input: LineEdit
 var bot_count_label: Label
 var bot_count_slider: HSlider
-var bot_toggle_btn: Button
 
 var current_class: int = 0
-var bots_on: bool = false
 
 @onready var soldier_mesh = $low_poly_soldier
 @onready var weapon_pivot = $low_poly_soldier/WeaponPivot
@@ -252,50 +250,9 @@ func _build_center_panel():
 		var tn = opt[1]
 		tb.pressed.connect(func(): GameManager.round_duration = tv; status_label.text = "Time: " + tn)
 
-	# Bot Settings
-	var sep2 = HSeparator.new(); vbox.add_child(sep2)
-	_make_label(vbox, "BOT SETTINGS", 14, Color(0.7, 0.7, 0.8))
-	bot_toggle_btn = _make_button(vbox, "BOTS: OFF", 16)
-	bot_toggle_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot_toggle_btn.pressed.connect(_toggle_bots)
+	# Removed Bot Settings per user request
 
-	var bot_row = HBoxContainer.new()
-	bot_row.add_theme_constant_override("separation", 10)
-	vbox.add_child(bot_row)
-	bot_count_label = Label.new()
-	bot_count_label.text = "Bots: 4"
-	bot_count_label.add_theme_font_size_override("font_size", 14)
-	bot_count_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
-	bot_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot_row.add_child(bot_count_label)
-	bot_count_slider = HSlider.new()
-	bot_count_slider.min_value = 1
-	bot_count_slider.max_value = 8
-	bot_count_slider.step = 1
-	bot_count_slider.value = 4
-	bot_count_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot_count_slider.value_changed.connect(func(v):
-		GameManager.bot_count = int(v)
-		bot_count_label.text = "Bots: " + str(int(v))
-	)
-	bot_row.add_child(bot_count_slider)
-
-func _toggle_bots():
-	bots_on = !bots_on
-	GameManager.bots_enabled = bots_on
-	bot_toggle_btn.text = "BOTS: ON" if bots_on else "BOTS: OFF"
-	var s = StyleBoxFlat.new()
-	s.corner_radius_top_left = 6; s.corner_radius_top_right = 6
-	s.corner_radius_bottom_left = 6; s.corner_radius_bottom_right = 6
-	s.border_width_left = 1; s.border_width_right = 1
-	s.border_width_top = 1; s.border_width_bottom = 1
-	if bots_on:
-		s.bg_color = Color(0.1, 0.25, 0.1)
-		s.border_color = Color(0.2, 0.8, 0.2)
-	else:
-		s.bg_color = Color(0.15, 0.15, 0.22)
-		s.border_color = Color(0.3, 0.3, 0.45)
-	bot_toggle_btn.add_theme_stylebox_override("normal", s)
+# Removed _toggle_bots
 
 # ── RIGHT PANEL: CONNECT ──
 func _build_right_panel():
