@@ -31,13 +31,16 @@ func _ready():
 		GameManager.spawn_points = [Vector3(0, 2, 0)]
 
 	if GameManager.is_host:
-		_log("Setting up Server...")
-		var peer = ENetMultiplayerPeer.new()
-		var error = peer.create_server(1337, 32) # Using hardcoded PORT and MAX_CLIENTS
+		_log("Setting up WebSocket Server...")
+		var peer = WebSocketMultiplayerPeer.new()
+		var error = peer.create_server(1337)
 		if error == OK:
 			multiplayer.multiplayer_peer = peer
-			GameManager.register_player(1, GameManager.local_player_name)
-			_spawn_player(1)
+			if "--server" not in OS.get_cmdline_args():
+				GameManager.register_player(1, GameManager.local_player_name)
+				_spawn_player(1)
+			else:
+				_log("Running as Dedicated Server. No player spawned for host.")
 			multiplayer.peer_connected.connect(_on_peer_connected)
 			multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 			if GameManager.bots_enabled:
@@ -48,9 +51,14 @@ func _ready():
 		else:
 			_log("Failed to start server!")
 	else:
-		_log("Setting up Client...")
-		var peer = ENetMultiplayerPeer.new()
-		var error = peer.create_client(GameManager.join_address, 1337)
+		_log("Setting up WebSocket Client...")
+		var peer = WebSocketMultiplayerPeer.new()
+		var url = ""
+		if "onrender.com" in GameManager.join_address:
+			url = "wss://" + GameManager.join_address
+		else:
+			url = "ws://" + GameManager.join_address + ":1337"
+		var error = peer.create_client(url)
 		if error == OK:
 			multiplayer.multiplayer_peer = peer
 			multiplayer.connected_to_server.connect(_on_connected_to_server)
