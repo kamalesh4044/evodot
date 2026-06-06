@@ -446,13 +446,8 @@ func update_hud(hp: int, max_hp: int, ammo: int, _max_ammo: int, reserve_ammo: i
 		if not player_ref.is_on_floor():
 			spread_visual += 8.0
 		if player_ref.is_aiming:
-			spread_visual *= 0.5
+			spread_visual = max(0.0, spread_visual * 0.1) # Super sharp when aiming
 		_update_crosshair_lines(spread_visual)
-
-	# Hide crosshair when ADS (shotgun keeps it)
-	if crosshair_container and player_ref:
-		var wi = player_ref.current_weapon_index
-		crosshair_container.visible = not (player_ref.is_aiming and wi != 2)
 
 	# Scoreboard (hold TAB)
 	if scoreboard_panel:
@@ -532,10 +527,7 @@ func _build_scope_overlay():
 	add_child(scope_overlay)
 
 func set_scope_visible(is_visible: bool):
-	if is_instance_valid(scope_overlay):
-		scope_overlay.visible = is_visible
-	if is_instance_valid(crosshair_container):
-		crosshair_container.visible = !is_visible
+	pass # Disabled scope overlay per user request
 
 # ──────────────────────────────────────────
 # KILL STREAK NOTIFICATION
