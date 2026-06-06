@@ -43,7 +43,7 @@ func _on_connected_to_server():
 	if pname.strip_edges() == "":
 		pname = "Player " + str(multiplayer.get_unique_id())
 	GameManager.register_player(multiplayer.get_unique_id(), pname)
-	_request_spawn.rpc_id(1, multiplayer.get_unique_id())
+	_request_spawn.rpc_id(1, multiplayer.get_unique_id(), pname)
 
 func _on_connection_failed():
 	print("Failed to connect!")
@@ -159,14 +159,14 @@ func _on_peer_disconnected(id: int):
 		player_node.queue_free()
 
 @rpc("any_peer", "reliable")
-func _request_spawn(peer_id: int):
+func _request_spawn(peer_id: int, player_name: String = "Player"):
 	if not multiplayer.is_server():
 		return
 	var sender_id = multiplayer.get_remote_sender_id()
 	# sender_id == 0 means called locally (server spawning itself)
 	if sender_id != 0 and sender_id != peer_id:
 		return
-	GameManager.register_player(peer_id, GameManager.player_data.get(peer_id, {}).get("name", "Player"))
+	GameManager.register_player(peer_id, player_name)
 	_spawn_player(peer_id)
 
 func _process(_delta):

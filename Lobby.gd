@@ -367,6 +367,7 @@ func _on_host_pressed():
 	peer = ENetMultiplayerPeer.new()
 	var error = peer.create_server(PORT, MAX_CLIENTS)
 	if error == OK:
+		multiplayer.multiplayer_peer = peer
 		GameManager.pending_peer = peer
 		GameManager.register_player(1, pname)
 		status_label.text = "Server Started! Launching..."
@@ -386,6 +387,7 @@ func _on_join_pressed():
 	peer = ENetMultiplayerPeer.new()
 	var error = peer.create_client(address, PORT)
 	if error == OK:
+		multiplayer.multiplayer_peer = peer
 		GameManager.pending_peer = peer
 	else:
 		status_label.text = "Failed to connect"
