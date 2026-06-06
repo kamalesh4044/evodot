@@ -67,6 +67,17 @@ func _update_weapon_models(index: int):
 		if is_instance_valid(tp_weapon_models[i]):
 			# The Mixamo model already holds a gun, so we don't need these anymore!
 			tp_weapon_models[i].visible = false
+			
+	if index == 0: # Assault Rifle
+		weapon_idle_position = Vector3(0.24, -0.2, -0.58)
+		weapon_ads_position = Vector3(0.0, -0.16, -0.42)
+	elif index == 1: # SMG
+		weapon_idle_position = Vector3(0.2, -0.15, -0.45)
+		weapon_ads_position = Vector3(0.0, -0.15, -0.35)
+	elif index == 2: # Shotgun
+		weapon_idle_position = Vector3(0.22, -0.18, -0.5)
+		weapon_ads_position = Vector3(0.0, -0.18, -0.4)
+		
 	_update_hud()
 
 # Recoil
@@ -185,6 +196,12 @@ var fire_anim_timer: float = 0.0
 # HUD reference
 var hud_script: Node = null
 
+# Audio
+var sfx_gunshot: AudioStreamPlayer3D
+var sfx_hit: AudioStreamPlayer
+var sfx_step: AudioStreamPlayer3D
+var footstep_timer: float = 0.0
+
 func _enter_tree():
 	set_multiplayer_authority(name.to_int())
 
@@ -192,6 +209,7 @@ func _ready():
 	add_to_group("players")
 	_configure_weapon_model_transforms()
 	_setup_animations()
+	_setup_audio()
 	
 	# Dynamically adjust player collision, camera height, and speeds based on scale
 	var s = THIRD_PERSON_MODEL_SCALE
@@ -322,7 +340,17 @@ func _physics_process(delta: float):
 		_handle_movement(delta)
 		_handle_shooting(delta)
 		_handle_reload(delta)
-		_handle_aim(delta)
+		
+	# Footsteps
+	if is_on_floor() and h_speed > 1.0:
+		footstep_timer -= delta
+		if footstep_timer <= 0.0:
+			if sfx_step: sfx_step.play()
+			footstep_timer = 0.4 if not is_sprinting else 0.28
+	else:
+		footstep_timer = 0.0
+
+	_handle_aim(delta)
 		_handle_recoil_recovery(delta)
 		_handle_procedural_animations(delta)
 		move_and_slide()
@@ -478,6 +506,23 @@ func sync_weapon(index: int):
 	current_weapon_index = index
 	_update_weapon_models(index)
 
+func _setup_audio():
+	sfx_gunshot = AudioStreamPlayer3D.new()
+	var g_stream = load("res://assets/sounds/gunshot.wav")
+	if g_stream: sfx_gunshot.stream = g_stream
+	add_child(sfx_gunshot)
+	
+	sfx_step = AudioStreamPlayer3D.new()
+	var s_stream = load("res://assets/sounds/footstep.wav")
+	if s_stream: sfx_step.stream = s_stream
+	sfx_step.volume_db = -10.0
+	add_child(sfx_step)
+	
+	sfx_hit = AudioStreamPlayer.new()
+	var h_stream = load("res://assets/sounds/hit.wav")
+	if h_stream: sfx_hit.stream = h_stream
+	add_child(sfx_hit)
+
 func switch_weapon(index: int):
 	if index < 0 or index >= weapons.size(): return
 	sync_weapon.rpc(index)
@@ -541,6 +586,9 @@ func _fire():
 				# Route damage through server for validation
 				collider.request_damage.rpc_id(1, damage, multiplayer.get_unique_id())
 				var is_hs = damage >= int(weapon["damage"] * weapon["head_mult"] * 0.75)
+				if sfx_hit:
+					sfx_hit.pitch_scale = randf_range(0.95, 1.05)
+					sfx_hit.play()
 				if hud_script and hud_script.has_method("show_hitmarker"):
 					hud_script.show_hitmarker(is_hs)
 			else:
@@ -582,6 +630,11 @@ func _apply_recoil(weapon: Dictionary):
 
 	recoil_shot_index += 1
 	recoil_reset_timer = RECOIL_RESET_TIME
+	
+	if sfx_gunshot and not sfx_gunshot.playing:
+		sfx_gunshot.pitch_scale = randf_range(0.9, 1.1)
+		sfx_gunshot.play()
+		
 	recoil_pitch += recoil.x
 	recoil_yaw += recoil.y
 	camera_pivot.rotation.x = clamp(camera_pivot.rotation.x + recoil.x, deg_to_rad(-89), deg_to_rad(89))
@@ -706,7 +759,14 @@ func _finish_reload():
 # ──────────────────────────────────────────
 func _handle_aim(delta: float):
 	is_aiming = Input.is_action_pressed("aim")
+	if current_weapon_index == 2: # Shotgun
+		is_aiming = false
 	var target_fov = ADS_FOV if is_aiming else NORMAL_FOV
+	
+	if hud_script and hud_script.has_method("set_scope_visible"):
+		# Only show scope overlay for Assault Rifle (0) or Sniper (if added)
+		var use_overlay = is_aiming and (current_weapon_index == 0)
+		hud_script.set_scope_visible(use_overlay)
 	camera.fov = lerp(camera.fov, target_fov, ADS_SPEED * delta)
 
 # ──────────────────────────────────────────
@@ -867,6 +927,11 @@ func _handle_procedural_animations(delta: float):
 		if h_speed > 1.0 and is_on_floor():
 			target_pos.x += sin(t * h_speed * 1.4) * 0.018 * bob_scale
 			target_pos.y += abs(cos(t * h_speed * 2.8)) * 0.025 * bob_scale
+		else:
+			# Idle sway
+			target_pos.x += cos(t * 1.2) * 0.003 * bob_scale
+			target_pos.y += sin(t * 1.5) * 0.002 * bob_scale
+			
 		target_pos.z += viewmodel_kick
 		target_pos.x += clamp(last_mouse_delta.x, -35.0, 35.0) * -0.0007 * bob_scale
 		target_pos.y += clamp(last_mouse_delta.y, -35.0, 35.0) * -0.0005 * bob_scale

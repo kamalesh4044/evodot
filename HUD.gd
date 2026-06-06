@@ -26,6 +26,7 @@ var kill_streak_label: Label
 var spawn_shield_overlay: ColorRect
 var game_over_overlay: Control
 var match_mode_label: Label
+var scope_overlay: ColorRect
 
 # Crosshair settings
 var crosshair_gap: float = 6.0
@@ -55,6 +56,7 @@ func _build_hud():
 	_build_round_timer()
 	_build_kill_streak_notification()
 	_build_spawn_shield_indicator()
+	_build_scope_overlay()
 	_build_game_over_overlay()
 	_build_match_mode_label()
 	GameManager.game_over.connect(_on_game_over)
@@ -496,6 +498,40 @@ func _build_match_mode_label():
 	match_mode_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	match_mode_label.position = Vector2(12, 12)
 	match_mode_label.text = GameManager.match_type
+
+# ── SCOPE OVERLAY ──
+func _build_scope_overlay():
+	scope_overlay = ColorRect.new()
+	scope_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scope_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scope_overlay.visible = false
+	
+	var mat = ShaderMaterial.new()
+	var shader = Shader.new()
+	shader.code = """
+	shader_type canvas_item;
+	void fragment() {
+		vec2 uv = UV * 2.0 - 1.0;
+		// Adjust for aspect ratio roughly
+		uv.x *= 1.777;
+		float d = length(uv);
+		float alpha = smoothstep(0.45, 0.9, d);
+		COLOR = vec4(0.0, 0.0, 0.0, alpha * 0.98);
+		// Add a thin black ring
+		if (d > 0.43 && d < 0.45) {
+			COLOR = vec4(0.0, 0.0, 0.0, 0.85);
+		}
+	}
+	"""
+	mat.shader = shader
+	scope_overlay.material = mat
+	add_child(scope_overlay)
+
+func set_scope_visible(is_visible: bool):
+	if is_instance_valid(scope_overlay):
+		scope_overlay.visible = is_visible
+	if is_instance_valid(crosshair_container):
+		crosshair_container.visible = !is_visible
 	match_mode_label.add_theme_font_size_override("font_size", 14)
 	match_mode_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
 	match_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
