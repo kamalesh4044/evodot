@@ -39,7 +39,10 @@ func _ready():
 			_on_connected_to_server()
 
 func _on_connected_to_server():
-	GameManager.register_player(multiplayer.get_unique_id(), "Player " + str(multiplayer.get_unique_id()))
+	var pname = GameManager.local_player_name
+	if pname.strip_edges() == "":
+		pname = "Player " + str(multiplayer.get_unique_id())
+	GameManager.register_player(multiplayer.get_unique_id(), pname)
 	_request_spawn.rpc_id(1, multiplayer.get_unique_id())
 
 func _on_connection_failed():
@@ -140,8 +143,9 @@ func _spawn_player(peer_id: int):
 		return
 	var player = GameManager.player_scene.instantiate()
 	player.name = str(peer_id)
-	player.global_position = GameManager.get_spawn_position()
+	# Must add to scene tree BEFORE setting global_position
 	players_node.add_child(player, true)
+	player.global_position = GameManager.get_spawn_position()
 	GameManager.player_spawned.emit(peer_id)
 
 func _on_peer_connected(_id: int):
@@ -159,9 +163,10 @@ func _request_spawn(peer_id: int):
 	if not multiplayer.is_server():
 		return
 	var sender_id = multiplayer.get_remote_sender_id()
-	if sender_id != peer_id:
+	# sender_id == 0 means called locally (server spawning itself)
+	if sender_id != 0 and sender_id != peer_id:
 		return
-	GameManager.register_player(peer_id)
+	GameManager.register_player(peer_id, GameManager.player_data.get(peer_id, {}).get("name", "Player"))
 	_spawn_player(peer_id)
 
 func _process(_delta):

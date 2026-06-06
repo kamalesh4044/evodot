@@ -149,7 +149,7 @@ func get_team_spawn_position(team: int) -> Vector3:
 	# Split spawn points between teams
 	if spawn_points.is_empty():
 		return Vector3(0, 2, 0)
-	var half = max(1, spawn_points.size() / 2)
+	var half: int = max(1, spawn_points.size() / 2)
 	var start_idx = 0 if team == 0 else half
 	var end_idx = half if team == 0 else spawn_points.size()
 	var idx = randi() % (end_idx - start_idx) + start_idx
