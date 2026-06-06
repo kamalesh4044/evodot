@@ -19,9 +19,7 @@ RUN wget -q https://github.com/godotengine/godot-builds/releases/download/4.2.1-
 WORKDIR /app
 COPY . .
 
-# Force Godot to import all resources so .glb files work headless
-RUN godot --headless --editor --quit || true
-
+# (Assets are now imported via Git)
 # Expose the WebSocket port
 EXPOSE 1337
 

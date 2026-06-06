@@ -1,5 +1,8 @@
 # Godot 4+ specific ignores
-.godot/
+.godot/*
+!.godot/imported/
+!.godot/global_script_class_cache.cfg
+!.godot/uid_cache.bin
 .godot_user/
 *.translation
 *.gdignore

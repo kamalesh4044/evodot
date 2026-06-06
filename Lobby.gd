@@ -20,6 +20,12 @@ var current_class: int = 0
 @onready var cam = $Camera3D
 
 func _ready():
+	if "--server" in OS.get_cmdline_args():
+		GameManager.local_player_name = "DedicatedServer"
+		GameManager.is_host = true
+		_start_game()
+		return
+		
 	_build_ui()
 	var weapons = [
 		preload("res://models/ak-74.glb").instantiate(),
