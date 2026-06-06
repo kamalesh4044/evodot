@@ -1,5 +1,4 @@
 extends Node3D
-extends Node3D
 
 ## Main.gd - Game world scene script
 ## Creates collision in GLOBAL space to handle scaling gracefully.
@@ -30,6 +29,8 @@ func _ready():
 		_spawn_pickups()
 		# Handle game over
 		GameManager.game_over.connect(_on_game_over)
+		# Connect player_spawned to suppress unused signal warning
+		GameManager.player_spawned.connect(func(_id): pass)
 	else:
 		multiplayer.connected_to_server.connect(_on_connected_to_server)
 		multiplayer.connection_failed.connect(_on_connection_failed)
@@ -143,9 +144,9 @@ func _spawn_player(peer_id: int):
 	players_node.add_child(player, true)
 	GameManager.player_spawned.emit(peer_id)
 
-func _on_peer_connected(id: int):
-	if multiplayer.is_server():
-		GameManager.register_player(id)
+func _on_peer_connected(_id: int):
+	# New peers request their own spawn via RPC
+	pass
 
 func _on_peer_disconnected(id: int):
 	GameManager.unregister_player(id)

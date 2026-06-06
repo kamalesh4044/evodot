@@ -481,8 +481,9 @@ func _build_round_timer():
 
 func _on_round_timer_updated(seconds: float):
 	if not is_instance_valid(round_timer_label): return
-	var mins = int(seconds) / 60
-	var secs = int(seconds) % 60
+	var total_secs: int = int(seconds)
+	var mins: int = total_secs / 60
+	var secs: int = total_secs % 60
 	round_timer_label.text = "%d:%02d" % [mins, secs]
 	if seconds <= 30.0:
 		round_timer_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
