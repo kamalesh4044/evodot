@@ -13,8 +13,8 @@ func _ready():
 		_create_box_collider(Vector3.ZERO, Vector3(50, 1, 50))
 		GameManager.spawn_points = [Vector3(0, 2, 0)]
 
+	# Peer is already assigned in Lobby.gd, no need to reassign here.
 	if GameManager.pending_peer:
-		multiplayer.multiplayer_peer = GameManager.pending_peer
 		GameManager.pending_peer = null
 
 	if multiplayer.is_server():
@@ -143,9 +143,8 @@ func _spawn_player(peer_id: int):
 		return
 	var player = GameManager.player_scene.instantiate()
 	player.name = str(peer_id)
-	# Must add to scene tree BEFORE setting global_position
+	player.position = GameManager.get_spawn_position()
 	players_node.add_child(player, true)
-	player.global_position = GameManager.get_spawn_position()
 	GameManager.player_spawned.emit(peer_id)
 
 func _on_peer_connected(_id: int):
