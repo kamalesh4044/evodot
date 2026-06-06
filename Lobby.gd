@@ -21,10 +21,6 @@ var current_class: int = 0
 
 func _ready():
 	_build_ui()
-	multiplayer.peer_connected.connect(_on_peer_connected)
-	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-	multiplayer.connected_to_server.connect(_on_connected_to_server)
-	multiplayer.connection_failed.connect(_on_connection_failed)
 	var weapons = [
 		preload("res://models/ak-74.glb").instantiate(),
 		preload("res://models/thompson.glb").instantiate(),
