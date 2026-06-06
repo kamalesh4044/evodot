@@ -498,6 +498,10 @@ func _build_match_mode_label():
 	match_mode_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	match_mode_label.position = Vector2(12, 12)
 	match_mode_label.text = GameManager.match_type
+	match_mode_label.add_theme_font_size_override("font_size", 14)
+	match_mode_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	match_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(match_mode_label)
 
 # ── SCOPE OVERLAY ──
 func _build_scope_overlay():
@@ -532,10 +536,6 @@ func set_scope_visible(is_visible: bool):
 		scope_overlay.visible = is_visible
 	if is_instance_valid(crosshair_container):
 		crosshair_container.visible = !is_visible
-	match_mode_label.add_theme_font_size_override("font_size", 14)
-	match_mode_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
-	match_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(match_mode_label)
 
 # ──────────────────────────────────────────
 # KILL STREAK NOTIFICATION
