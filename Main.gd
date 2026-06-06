@@ -3,7 +3,7 @@ extends Node3D
 ## Main.gd - Game world scene script
 ## Creates collision in GLOBAL space to handle scaling gracefully.
 
-@onready var players_node: Node3D
+@onready var players_node: Node3D = $Players
 var debug_label: Label
 
 func _log(msg: String):
