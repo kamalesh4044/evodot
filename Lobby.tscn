@@ -6,14 +6,10 @@
 
 [sub_resource type="Environment" id="Environment_lobby"]
 background_mode = 1
-background_color = Color(0.04, 0.04, 0.06, 1)
+background_color = Color(0.05, 0.05, 0.05, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.08, 0.1, 0.15, 1)
-ambient_light_energy = 0.4
+ambient_light_color = Color(0.2, 0.2, 0.2, 1)
 tonemap_mode = 2
-glow_enabled = true
-glow_intensity = 0.6
-glow_bloom = 0.08
 
 [node name="Lobby3D" type="Node3D" unique_id=659062836]
 script = ExtResource("1")
@@ -21,32 +17,15 @@ script = ExtResource("1")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=886764769]
 environment = SubResource("Environment_lobby")
 
-[node name="KeyLight" type="DirectionalLight3D" parent="." unique_id=1549265816]
-transform = Transform3D(0.866, -0.354, 0.354, 0.0, 0.707, 0.707, -0.5, -0.612, 0.612, -1.2, 3.5, 2.0)
-light_color = Color(0.7, 0.85, 1.0, 1)
-light_energy = 2.8
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1549265816]
+transform = Transform3D(0.8660191, -0.35356298, 0.35355932, -0.43740827, -0.19311702, 0.87828237, -0.24224988, -0.91525906, -0.32189435, 1680.5637, 6.8450174, 4.190731)
+light_color = Color(0.9, 0.95, 1, 1)
+light_energy = 1.646
 shadow_enabled = true
-
-[node name="FillLight" type="OmniLight3D" parent="." unique_id=314159265]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 1.5, 1.0)
-light_color = Color(0.3, 0.5, 1.0, 1)
-light_energy = 1.2
-omni_range = 8.0
-
-[node name="RimLight" type="OmniLight3D" parent="." unique_id=271828182]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 2.0, -1.5)
-light_color = Color(0.1, 0.6, 1.0, 1)
-light_energy = 2.5
-omni_range = 6.0
-
-[node name="GroundFog" type="OmniLight3D" parent="." unique_id=141421356]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-light_color = Color(0.05, 0.1, 0.3, 1)
-light_energy = 0.8
-omni_range = 4.0
+sky_mode = 1
 
 [node name="low_poly_soldier" parent="." unique_id=1828959540 instance=ExtResource("2")]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, -1.5)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
 [node name="WeaponPivot" type="Node3D" parent="low_poly_soldier" unique_id=157396924]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.1, -0.3)
@@ -55,7 +34,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.1, -0.3)
 transform = Transform3D(-0.045, 0, -6.7948114e-09, 0, 0.045, 0, 6.7948114e-09, 0, -0.045, -1.0362618, 1.4249681, -8.940697e-08)
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=521010117]
-transform = Transform3D(1, 0, 0, 0, 0.996, 0.087, 0, -0.087, 0.996, 0, 2.2, 3.8)
-fov = 45.0
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 2.9434114, -3.983718)
+fov = 60.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1995888358]
