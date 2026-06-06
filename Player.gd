@@ -369,7 +369,6 @@ func _physics_process(delta: float):
 		synced_health = health
 		
 		# Determine anim state
-		var h_speed = Vector3(velocity.x, 0, velocity.z).length()
 		var target_anim = "Idle"
 		if not is_on_floor():
 			target_anim = "Jump"
