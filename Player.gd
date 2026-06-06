@@ -341,16 +341,16 @@ func _physics_process(delta: float):
 		_handle_shooting(delta)
 		_handle_reload(delta)
 		
-	# Footsteps
-	if is_on_floor() and h_speed > 1.0:
-		footstep_timer -= delta
-		if footstep_timer <= 0.0:
-			if sfx_step: sfx_step.play()
-			footstep_timer = 0.4 if not is_sprinting else 0.28
-	else:
-		footstep_timer = 0.0
+		# Footsteps
+		if is_on_floor() and h_speed > 1.0:
+			footstep_timer -= delta
+			if footstep_timer <= 0.0:
+				if sfx_step: sfx_step.play()
+				footstep_timer = 0.4 if not is_sprinting else 0.28
+		else:
+			footstep_timer = 0.0
 
-	_handle_aim(delta)
+		_handle_aim(delta)
 		_handle_recoil_recovery(delta)
 		_handle_procedural_animations(delta)
 		move_and_slide()
