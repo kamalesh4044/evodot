@@ -320,18 +320,9 @@ func _on_host_pressed():
 	var pname = name_input.text.strip_edges()
 	if pname == "": pname = "Host"
 	GameManager.local_player_name = pname
+	GameManager.is_host = true
 	status_label.text = "Starting Server..."
-	peer = ENetMultiplayerPeer.new()
-	var error = peer.create_server(PORT, MAX_CLIENTS)
-	if error == OK:
-		multiplayer.multiplayer_peer = peer
-		GameManager.pending_peer = peer
-		GameManager.register_player(1, pname)
-		status_label.text = "Server Started! Launching..."
-		_start_game()
-	else:
-		status_label.text = "Failed to start server (port in use?)"
-		peer = null
+	_start_game()
 
 func _on_join_pressed():
 	if peer != null: return
@@ -340,33 +331,10 @@ func _on_join_pressed():
 	GameManager.local_player_name = pname
 	var address = address_input.text.strip_edges()
 	if address == "": address = "localhost"
+	GameManager.join_address = address
+	GameManager.is_host = false
 	status_label.text = "Connecting to " + address + "..."
-	peer = ENetMultiplayerPeer.new()
-	var error = peer.create_client(address, PORT)
-	if error == OK:
-		multiplayer.multiplayer_peer = peer
-		GameManager.pending_peer = peer
-	else:
-		status_label.text = "Failed to connect"
-		peer = null
-
-func _on_peer_connected(id: int):
-	pass
-
-func _on_peer_disconnected(id: int):
-	pass
-
-func _on_connected_to_server():
-	var pname = GameManager.local_player_name
-	if pname == "": pname = "Player " + str(multiplayer.get_unique_id())
-	GameManager.register_player(multiplayer.get_unique_id(), pname)
-	status_label.text = "Connected! Entering match..."
-	await get_tree().create_timer(0.8).timeout
 	_start_game()
-
-func _on_connection_failed():
-	status_label.text = "Connection Failed — check IP and try again"
-	peer = null
 
 func _start_game():
 	GameManager.local_class_selection = current_class

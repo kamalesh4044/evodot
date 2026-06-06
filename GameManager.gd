@@ -16,6 +16,8 @@ enum GameState { LOBBY, PLAYING, GAME_OVER }
 var current_state: GameState = GameState.LOBBY
 
 var pending_peer: MultiplayerPeer = null
+var join_address: String = "localhost"
+var is_host: bool = false
 
 # ──────────────────────────────────────────
 # MATCH SETTINGS (set from Lobby)

@@ -30,36 +30,38 @@ func _ready():
 		_create_box_collider(Vector3.ZERO, Vector3(50, 1, 50))
 		GameManager.spawn_points = [Vector3(0, 2, 0)]
 
-	# Peer is already assigned in Lobby.gd, no need to reassign here.
-	if GameManager.pending_peer:
-		_log("Cleared pending_peer")
-		GameManager.pending_peer = null
-
-	if multiplayer.is_server():
+	if GameManager.is_host:
 		_log("Setting up Server...")
-		GameManager.register_player(multiplayer.get_unique_id(), GameManager.local_player_name)
-		_spawn_player(multiplayer.get_unique_id())
-		multiplayer.peer_connected.connect(_on_peer_connected)
-		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-		# Spawn bots if enabled
-		if GameManager.bots_enabled:
-			_spawn_bots()
-		# Activate pickups
-		_spawn_pickups()
-		# Handle game over
-		GameManager.game_over.connect(_on_game_over)
-		# Connect player_spawned to suppress unused signal warning
-		GameManager.player_spawned.connect(func(_id): pass)
-	else:
-		_log("Setting up Client... Status: " + str(multiplayer.multiplayer_peer.get_connection_status()))
-		multiplayer.connected_to_server.connect(_on_connected_to_server)
-		multiplayer.connection_failed.connect(_on_connection_failed)
-		# If somehow we are already connected (e.g. localhost is too fast)
-		if multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
-			_log("Already connected, calling _on_connected_to_server deferred")
-			call_deferred("_on_connected_to_server")
+		var peer = ENetMultiplayerPeer.new()
+		var error = peer.create_server(1337, 32) # Using hardcoded PORT and MAX_CLIENTS
+		if error == OK:
+			multiplayer.multiplayer_peer = peer
+			GameManager.register_player(1, GameManager.local_player_name)
+			_spawn_player(1)
+			multiplayer.peer_connected.connect(_on_peer_connected)
+			multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+			if GameManager.bots_enabled:
+				_spawn_bots()
+			_spawn_pickups()
+			GameManager.game_over.connect(_on_game_over)
+			GameManager.player_spawned.connect(func(_id): pass)
 		else:
-			_log("Waiting for connected_to_server signal...")
+			_log("Failed to start server!")
+	else:
+		_log("Setting up Client...")
+		var peer = ENetMultiplayerPeer.new()
+		var error = peer.create_client(GameManager.join_address, 1337)
+		if error == OK:
+			multiplayer.multiplayer_peer = peer
+			multiplayer.connected_to_server.connect(_on_connected_to_server)
+			multiplayer.connection_failed.connect(_on_connection_failed)
+			if multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+				_log("Already connected, calling _on_connected_to_server deferred")
+				call_deferred("_on_connected_to_server")
+			else:
+				_log("Waiting for connected_to_server signal...")
+		else:
+			_log("Failed to create client!")
 
 func _on_connected_to_server():
 	var id = multiplayer.get_unique_id()
