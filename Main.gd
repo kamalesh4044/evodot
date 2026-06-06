@@ -3,9 +3,26 @@ extends Node3D
 ## Main.gd - Game world scene script
 ## Creates collision in GLOBAL space to handle scaling gracefully.
 
-@onready var players_node: Node3D = $Players
+@onready var players_node: Node3D
+var debug_label: Label
+
+func _log(msg: String):
+	print(msg)
+	if debug_label:
+		debug_label.text += msg + "\n"
 
 func _ready():
+	var canvas = CanvasLayer.new()
+	canvas.layer = 100
+	add_child(canvas)
+	debug_label = Label.new()
+	debug_label.position = Vector2(20, 20)
+	debug_label.add_theme_font_size_override("font_size", 18)
+	debug_label.add_theme_color_override("font_color", Color.YELLOW)
+	canvas.add_child(debug_label)
+
+	_log("Main _ready started. is_server=" + str(multiplayer.is_server()))
+
 	var map_node = $Map
 	if map_node:
 		_setup_map(map_node)
@@ -15,9 +32,11 @@ func _ready():
 
 	# Peer is already assigned in Lobby.gd, no need to reassign here.
 	if GameManager.pending_peer:
+		_log("Cleared pending_peer")
 		GameManager.pending_peer = null
 
 	if multiplayer.is_server():
+		_log("Setting up Server...")
 		GameManager.register_player(multiplayer.get_unique_id(), GameManager.local_player_name)
 		_spawn_player(multiplayer.get_unique_id())
 		multiplayer.peer_connected.connect(_on_peer_connected)
@@ -32,20 +51,28 @@ func _ready():
 		# Connect player_spawned to suppress unused signal warning
 		GameManager.player_spawned.connect(func(_id): pass)
 	else:
+		_log("Setting up Client... Status: " + str(multiplayer.multiplayer_peer.get_connection_status()))
 		multiplayer.connected_to_server.connect(_on_connected_to_server)
 		multiplayer.connection_failed.connect(_on_connection_failed)
 		# If somehow we are already connected (e.g. localhost is too fast)
 		if multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
-			_on_connected_to_server()
+			_log("Already connected, calling _on_connected_to_server deferred")
+			call_deferred("_on_connected_to_server")
+		else:
+			_log("Waiting for connected_to_server signal...")
 
 func _on_connected_to_server():
+	var id = multiplayer.get_unique_id()
+	_log("_on_connected_to_server fired. My ID: " + str(id))
 	var pname = GameManager.local_player_name
 	if pname.strip_edges() == "":
-		pname = "Player " + str(multiplayer.get_unique_id())
-	GameManager.register_player(multiplayer.get_unique_id(), pname)
-	_request_spawn.rpc_id(1, multiplayer.get_unique_id(), pname)
+		pname = "Player " + str(id)
+	GameManager.register_player(id, pname)
+	_log("Sending _request_spawn to server with name: " + pname)
+	_request_spawn.rpc_id(1, id, pname)
 
 func _on_connection_failed():
+	_log("Connection failed!")
 	print("Failed to connect!")
 	get_tree().change_scene_to_file("res://Lobby.tscn")
 
@@ -145,6 +172,7 @@ func _spawn_player(peer_id: int):
 	player.name = str(peer_id)
 	player.position = GameManager.get_spawn_position()
 	players_node.add_child(player, true)
+	_log("Server spawned player " + str(peer_id) + " at " + str(player.position))
 	GameManager.player_spawned.emit(peer_id)
 
 func _on_peer_connected(_id: int):
@@ -162,8 +190,10 @@ func _request_spawn(peer_id: int, player_name: String = "Player"):
 	if not multiplayer.is_server():
 		return
 	var sender_id = multiplayer.get_remote_sender_id()
+	_log("Server received spawn request from " + str(sender_id) + " for peer " + str(peer_id))
 	# sender_id == 0 means called locally (server spawning itself)
 	if sender_id != 0 and sender_id != peer_id:
+		_log("Spawn rejected: sender_id != peer_id")
 		return
 	GameManager.register_player(peer_id, player_name)
 	_spawn_player(peer_id)
