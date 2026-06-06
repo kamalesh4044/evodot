@@ -342,6 +342,7 @@ func _physics_process(delta: float):
 		_handle_reload(delta)
 		
 		# Footsteps
+		var h_speed = Vector2(velocity.x, velocity.z).length()
 		if is_on_floor() and h_speed > 1.0:
 			footstep_timer -= delta
 			if footstep_timer <= 0.0:
