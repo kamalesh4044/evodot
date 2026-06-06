@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Godot Linux binary (you can update this URL to your specific version)
-RUN wget -q https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip -O godot.zip \
-    || wget -q https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip -O godot.zip \
+RUN wget -q https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip -O godot.zip \
+    || wget -q https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip -O godot.zip \
     && unzip godot.zip \
-    && mv Godot_v4.2.1-stable_linux.x86_64 /usr/local/bin/godot \
+    && mv Godot_v4.6.2-stable_linux.x86_64 /usr/local/bin/godot \
     && rm godot.zip
 
 # Create working directory and copy files
