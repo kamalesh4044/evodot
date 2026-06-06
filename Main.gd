@@ -1,4 +1,5 @@
 extends Node3D
+extends Node3D
 
 ## Main.gd - Game world scene script
 ## Creates collision in GLOBAL space to handle scaling gracefully.
@@ -18,11 +19,17 @@ func _ready():
 		GameManager.pending_peer = null
 
 	if multiplayer.is_server():
-		# Host is already registered in Lobby, but we can do it here just in case
-		GameManager.register_player(multiplayer.get_unique_id(), "Host")
+		GameManager.register_player(multiplayer.get_unique_id(), GameManager.local_player_name)
 		_spawn_player(multiplayer.get_unique_id())
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+		# Spawn bots if enabled
+		if GameManager.bots_enabled:
+			_spawn_bots()
+		# Activate pickups
+		_spawn_pickups()
+		# Handle game over
+		GameManager.game_over.connect(_on_game_over)
 	else:
 		multiplayer.connected_to_server.connect(_on_connected_to_server)
 		multiplayer.connection_failed.connect(_on_connection_failed)
@@ -156,15 +163,30 @@ func _request_spawn(peer_id: int):
 	GameManager.register_player(peer_id)
 	_spawn_player(peer_id)
 
-func _process(delta):
-	# Removed bot spawning logic entirely as requested by the user
+func _process(_delta):
 	pass
 
 var pickup_scene: PackedScene = preload("res://Pickup.tscn")
 
 func _spawn_pickups():
-	for i in range(5):
+	for i in range(8):
 		var p = pickup_scene.instantiate()
 		p.position = GameManager.get_spawn_position() + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
 		p.pickup_type = randi() % 2
 		add_child(p)
+
+func _spawn_bots():
+	if not GameManager.bot_scene: return
+	for i in range(GameManager.bot_count):
+		var bot = GameManager.bot_scene.instantiate()
+		var bot_id = 10000 + i
+		bot.name = str(bot_id)
+		bot.global_position = GameManager.get_spawn_position()
+		players_node.add_child(bot, true)
+		GameManager.register_player(bot_id, "Bot " + str(i + 1), -1, true)
+
+func _on_game_over(_winner_name: String):
+	# Server resets after the game over screen countdown
+	await get_tree().create_timer(12.0).timeout
+	GameManager.reset()
+	get_tree().change_scene_to_file("res://Lobby.tscn")

@@ -12,6 +12,7 @@ var crosshair_lines: Array[Panel] = []
 var health_bar: ProgressBar
 var health_label: Label
 var ammo_label: Label
+var weapon_name_label: Label
 var reload_label: Label
 var hitmarker_label: Label
 var kill_feed_container: VBoxContainer
@@ -20,6 +21,11 @@ var death_label: Label
 var respawn_label: Label
 var scoreboard_panel: PanelContainer
 var scoreboard_content: VBoxContainer
+var round_timer_label: Label
+var kill_streak_label: Label
+var spawn_shield_overlay: ColorRect
+var game_over_overlay: Control
+var match_mode_label: Label
 
 # Crosshair settings
 var crosshair_gap: float = 6.0
@@ -40,11 +46,19 @@ func _build_hud():
 	_build_crosshair()
 	_build_health_bar()
 	_build_ammo_display()
+	_build_weapon_name()
 	_build_reload_indicator()
 	_build_hitmarker()
 	_build_kill_feed()
 	_build_death_overlay()
 	_build_scoreboard()
+	_build_round_timer()
+	_build_kill_streak_notification()
+	_build_spawn_shield_indicator()
+	_build_game_over_overlay()
+	_build_match_mode_label()
+	GameManager.game_over.connect(_on_game_over)
+	GameManager.round_timer_updated.connect(_on_round_timer_updated)
 
 # ──────────────────────────────────────────
 # CROSSHAIR
@@ -152,7 +166,7 @@ func _build_health_bar():
 func _build_ammo_display():
 	ammo_label = Label.new()
 	ammo_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	ammo_label.position = Vector2(-180, -60)
+	ammo_label.position = Vector2(-190, -60)
 	ammo_label.text = "30 / 90"
 	ammo_label.add_theme_font_size_override("font_size", 28)
 	ammo_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
@@ -160,6 +174,21 @@ func _build_ammo_display():
 	ammo_label.custom_minimum_size = Vector2(160, 0)
 	ammo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ammo_label)
+
+# ──────────────────────────────────────────
+# WEAPON NAME
+# ──────────────────────────────────────────
+func _build_weapon_name():
+	weapon_name_label = Label.new()
+	weapon_name_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	weapon_name_label.position = Vector2(-220, -90)
+	weapon_name_label.text = "ASSAULT RIFLE"
+	weapon_name_label.add_theme_font_size_override("font_size", 14)
+	weapon_name_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+	weapon_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	weapon_name_label.custom_minimum_size = Vector2(200, 0)
+	weapon_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(weapon_name_label)
 
 # ──────────────────────────────────────────
 # RELOAD INDICATOR
@@ -323,9 +352,10 @@ func _build_scoreboard():
 	var header = HBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(header)
-	_add_scoreboard_cell(header, "PLAYER", Color(0.7, 0.7, 0.8), 200)
-	_add_scoreboard_cell(header, "K", Color(0.7, 0.7, 0.8), 60)
-	_add_scoreboard_cell(header, "D", Color(0.7, 0.7, 0.8), 60)
+	_add_scoreboard_cell(header, "PLAYER", Color(0.7, 0.7, 0.8), 180)
+	_add_scoreboard_cell(header, "K", Color(0.7, 0.7, 0.8), 50)
+	_add_scoreboard_cell(header, "D", Color(0.7, 0.7, 0.8), 50)
+	_add_scoreboard_cell(header, "KDR", Color(0.7, 0.7, 0.8), 60)
 
 	scoreboard_content = VBoxContainer.new()
 	scoreboard_content.add_theme_constant_override("separation", 4)
@@ -356,10 +386,13 @@ func _update_scoreboard():
 		if player_ref:
 			is_me = entry["id"] == player_ref.name.to_int()
 
-		var name_color = Color(0.0, 1.0, 0.6) if is_me else Color(0.9, 0.9, 0.95)
-		_add_scoreboard_cell(row, entry["name"], name_color, 200)
-		_add_scoreboard_cell(row, str(entry["kills"]), Color(0.9, 0.9, 0.95), 60)
-		_add_scoreboard_cell(row, str(entry["deaths"]), Color(0.9, 0.9, 0.95), 60)
+		var name_color = Color(1.0, 0.6, 0.1) if is_me else Color(0.9, 0.9, 0.95)
+		if entry.get("is_bot", false):
+			name_color = Color(0.5, 0.5, 0.6)
+		_add_scoreboard_cell(row, entry["name"], name_color, 180)
+		_add_scoreboard_cell(row, str(entry["kills"]), Color(0.4, 1.0, 0.5), 50)
+		_add_scoreboard_cell(row, str(entry["deaths"]), Color(1.0, 0.4, 0.4), 50)
+		_add_scoreboard_cell(row, str(entry.get("kdr", 0.0)), Color(0.8, 0.8, 0.9), 60)
 
 # ──────────────────────────────────────────
 # MAIN UPDATE (called by Player.gd)
@@ -388,6 +421,12 @@ func update_hud(hp: int, max_hp: int, ammo: int, _max_ammo: int, reserve_ammo: i
 		else:
 			ammo_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
 
+	# Weapon name
+	if weapon_name_label and player_ref:
+		var wi = player_ref.current_weapon_index
+		if wi >= 0 and wi < player_ref.weapons.size():
+			weapon_name_label.text = player_ref.weapons[wi]["name"].to_upper()
+
 	# Reload
 	if reload_label:
 		reload_label.visible = reloading
@@ -408,6 +447,11 @@ func update_hud(hp: int, max_hp: int, ammo: int, _max_ammo: int, reserve_ammo: i
 			spread_visual *= 0.5
 		_update_crosshair_lines(spread_visual)
 
+	# Hide crosshair when ADS (shotgun keeps it)
+	if crosshair_container and player_ref:
+		var wi = player_ref.current_weapon_index
+		crosshair_container.visible = not (player_ref.is_aiming and wi != 2)
+
 	# Scoreboard (hold TAB)
 	if scoreboard_panel:
 		scoreboard_panel.visible = Input.is_action_pressed("scoreboard")
@@ -417,3 +461,163 @@ func update_hud(hp: int, max_hp: int, ammo: int, _max_ammo: int, reserve_ammo: i
 func set_crosshair_visible(vis: bool):
 	if crosshair_container:
 		crosshair_container.visible = vis
+
+# ──────────────────────────────────────────
+# ROUND TIMER
+# ──────────────────────────────────────────
+func _build_round_timer():
+	round_timer_label = Label.new()
+	round_timer_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	round_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	round_timer_label.position.y = 12
+	round_timer_label.text = ""
+	round_timer_label.add_theme_font_size_override("font_size", 22)
+	round_timer_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	round_timer_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(round_timer_label)
+	# Don't show if unlimited
+	if GameManager.round_duration <= 0.0:
+		round_timer_label.visible = false
+
+func _on_round_timer_updated(seconds: float):
+	if not is_instance_valid(round_timer_label): return
+	var mins = int(seconds) / 60
+	var secs = int(seconds) % 60
+	round_timer_label.text = "%d:%02d" % [mins, secs]
+	if seconds <= 30.0:
+		round_timer_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+
+# ──────────────────────────────────────────
+# MATCH MODE LABEL
+# ──────────────────────────────────────────
+func _build_match_mode_label():
+	match_mode_label = Label.new()
+	match_mode_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	match_mode_label.position = Vector2(12, 12)
+	match_mode_label.text = GameManager.match_type
+	match_mode_label.add_theme_font_size_override("font_size", 14)
+	match_mode_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	match_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(match_mode_label)
+
+# ──────────────────────────────────────────
+# KILL STREAK NOTIFICATION
+# ──────────────────────────────────────────
+func _build_kill_streak_notification():
+	kill_streak_label = Label.new()
+	kill_streak_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	kill_streak_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kill_streak_label.position.y = 80
+	kill_streak_label.position.x = -150
+	kill_streak_label.custom_minimum_size.x = 300
+	kill_streak_label.text = ""
+	kill_streak_label.add_theme_font_size_override("font_size", 28)
+	kill_streak_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.1))
+	kill_streak_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kill_streak_label.visible = false
+	add_child(kill_streak_label)
+
+func show_kill_streak(text: String):
+	if not is_instance_valid(kill_streak_label): return
+	kill_streak_label.text = text
+	kill_streak_label.visible = true
+	kill_streak_label.modulate.a = 1.0
+	var tween = create_tween()
+	tween.tween_interval(1.2)
+	tween.tween_property(kill_streak_label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(func(): if is_instance_valid(kill_streak_label): kill_streak_label.visible = false)
+
+# ──────────────────────────────────────────
+# SPAWN SHIELD INDICATOR
+# ──────────────────────────────────────────
+func _build_spawn_shield_indicator():
+	spawn_shield_overlay = ColorRect.new()
+	spawn_shield_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	spawn_shield_overlay.color = Color(0.1, 0.4, 1.0, 0.0)
+	spawn_shield_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spawn_shield_overlay.visible = false
+	add_child(spawn_shield_overlay)
+
+func show_spawn_shield():
+	if not is_instance_valid(spawn_shield_overlay): return
+	spawn_shield_overlay.visible = true
+	spawn_shield_overlay.color.a = 0.18
+
+func hide_spawn_shield():
+	if not is_instance_valid(spawn_shield_overlay): return
+	var tween = create_tween()
+	tween.tween_property(spawn_shield_overlay, "color:a", 0.0, 0.5)
+	tween.tween_callback(func(): if is_instance_valid(spawn_shield_overlay): spawn_shield_overlay.visible = false)
+
+func flash_spawn_shield():
+	if not is_instance_valid(spawn_shield_overlay): return
+	spawn_shield_overlay.color.a = 0.35
+	var tween = create_tween()
+	tween.tween_property(spawn_shield_overlay, "color:a", 0.18, 0.2)
+
+# ──────────────────────────────────────────
+# GAME OVER OVERLAY
+# ──────────────────────────────────────────
+func _build_game_over_overlay():
+	game_over_overlay = Control.new()
+	game_over_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	game_over_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	game_over_overlay.visible = false
+	add_child(game_over_overlay)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.0, 0.0, 0.05, 0.78)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	game_over_overlay.add_child(bg)
+
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	game_over_overlay.add_child(center)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 18)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(vbox)
+
+	var over_label = Label.new()
+	over_label.name = "OverLabel"
+	over_label.text = "MATCH OVER"
+	over_label.add_theme_font_size_override("font_size", 64)
+	over_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.1))
+	over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	over_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(over_label)
+
+	var winner_label = Label.new()
+	winner_label.name = "WinnerLabel"
+	winner_label.text = ""
+	winner_label.add_theme_font_size_override("font_size", 32)
+	winner_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	winner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	winner_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(winner_label)
+
+	var return_label = Label.new()
+	return_label.name = "ReturnLabel"
+	return_label.text = "Returning to lobby in 10..."
+	return_label.add_theme_font_size_override("font_size", 18)
+	return_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	return_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(return_label)
+
+func _on_game_over(winner_name: String):
+	if not is_instance_valid(game_over_overlay): return
+	game_over_overlay.visible = true
+	var winner_label = game_over_overlay.find_child("WinnerLabel", true, false)
+	if winner_label:
+		winner_label.text = "Winner: " + winner_name
+	var return_label = game_over_overlay.find_child("ReturnLabel", true, false)
+	# Countdown
+	for i in range(10, 0, -1):
+		if is_instance_valid(return_label):
+			return_label.text = "Returning to lobby in %d..." % i
+		await get_tree().create_timer(1.0).timeout
+	get_tree().change_scene_to_file("res://Lobby.tscn")

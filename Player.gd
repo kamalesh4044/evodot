@@ -141,6 +141,15 @@ var is_dead: bool = false
 var respawn_timer: float = 0.0
 const RESPAWN_TIME := 3.0
 
+# Spawn shield
+var spawn_shield: bool = true
+var spawn_shield_timer: float = 3.0
+
+# Kill streak
+var kill_streak: int = 0
+var last_kill_time: float = 0.0
+const KILL_STREAK_WINDOW := 5.0  # seconds between kills to count as streak
+
 # Sync vars (replicated via MultiplayerSynchronizer)
 @export var synced_position: Vector3 = Vector3.ZERO
 @export var synced_rotation_y: float = 0.0
@@ -298,6 +307,14 @@ func _physics_process(delta: float):
 		if is_dead:
 			_handle_respawn(delta)
 			return
+
+		# Tick spawn shield
+		if spawn_shield:
+			spawn_shield_timer -= delta
+			if spawn_shield_timer <= 0.0:
+				spawn_shield = false
+				if hud_script and hud_script.has_method("hide_spawn_shield"):
+					hud_script.hide_spawn_shield()
 
 		_handle_gravity(delta)
 		_handle_jump()
@@ -519,11 +536,13 @@ func _fire():
 		if shoot_ray.is_colliding():
 			var collider = shoot_ray.get_collider()
 			var hit_point = shoot_ray.get_collision_point()
-			if collider and collider.has_method("take_damage"):
+			if collider and collider.has_method("request_damage"):
 				var damage = _calculate_hit_damage(weapon, collider, hit_point)
-				collider.take_damage.rpc(damage, multiplayer.get_unique_id())
+				# Route damage through server for validation
+				collider.request_damage.rpc_id(1, damage, multiplayer.get_unique_id())
+				var is_hs = damage >= int(weapon["damage"] * weapon["head_mult"] * 0.75)
 				if hud_script and hud_script.has_method("show_hitmarker"):
-					hud_script.show_hitmarker(damage >= int(weapon["damage"] * weapon["head_mult"] * 0.75))
+					hud_script.show_hitmarker(is_hs)
 			else:
 				var hit_normal = shoot_ray.get_collision_normal()
 				_spawn_bullet_hole.rpc(hit_point, hit_normal)
@@ -581,7 +600,9 @@ func _calculate_hit_damage(weapon: Dictionary, collider: Node, hit_point: Vector
 
 	if collider is Node3D:
 		var local_hit = (collider as Node3D).to_local(hit_point)
-		if local_hit.y > 1.25:
+		# Headshot threshold scaled to player model size
+		var hs_threshold = 1.25 * THIRD_PERSON_MODEL_SCALE
+		if local_hit.y > hs_threshold:
 			damage *= float(weapon.get("head_mult", 2.0))
 
 	return max(1, int(round(damage)))
@@ -720,9 +741,23 @@ func _handle_recoil_recovery(delta: float):
 # ──────────────────────────────────────────
 # HEALTH & DAMAGE
 # ──────────────────────────────────────────
-@rpc("any_peer", "call_local", "reliable")
+# Clients request damage from server — server validates and applies it
+@rpc("any_peer", "reliable")
+func request_damage(amount: int, attacker_id: int):
+	if not multiplayer.is_server(): return
+	var sender = multiplayer.get_remote_sender_id()
+	# Only accept from the attacker themselves or server
+	if sender != attacker_id and sender != 1 and sender != 0: return
+	take_damage.rpc(amount, attacker_id)
+
+@rpc("authority", "call_local", "reliable")
 func take_damage(amount: int, attacker_id: int):
 	if is_dead:
+		return
+	# Spawn shield blocks all damage
+	if spawn_shield:
+		if is_multiplayer_authority() and hud_script and hud_script.has_method("flash_spawn_shield"):
+			hud_script.flash_spawn_shield()
 		return
 	health -= amount
 	health = max(health, 0)
@@ -731,21 +766,39 @@ func take_damage(amount: int, attacker_id: int):
 		_die(attacker_id)
 
 func _die(killer_id: int):
+	if not is_multiplayer_authority(): return
 	is_dead = true
 	respawn_timer = RESPAWN_TIME
 	velocity = Vector3.ZERO
 
-	# Record kill
+	# Record kill in GameManager
 	var my_id = name.to_int()
 	GameManager.record_kill(killer_id, my_id)
 
-	# Hide player mesh
-	if mesh_core:
-		mesh_core.visible = false
+	# Kill streak notification for killer
+	var now = Time.get_ticks_msec() / 1000.0
+	if killer_id == multiplayer.get_unique_id():
+		if now - last_kill_time < KILL_STREAK_WINDOW:
+			kill_streak += 1
+		else:
+			kill_streak = 1
+		last_kill_time = now
+		var streak_text = GameManager.get_kill_streak_label(kill_streak)
+		if streak_text != "" and hud_script and hud_script.has_method("show_kill_streak"):
+			hud_script.show_kill_streak(streak_text)
 
-	# Disable collision
+	# Hide player mesh
+	_sync_death_visual.rpc(true)
 	$CollisionShape3D.disabled = true
 	_update_hud()
+
+@rpc("authority", "call_local")
+func _sync_death_visual(dying: bool):
+	if mesh_core:
+		if dying:
+			mesh_core.visible = false
+		else:
+			mesh_core.visible = not is_multiplayer_authority()
 
 func _handle_respawn(delta: float):
 	respawn_timer -= delta
@@ -757,12 +810,20 @@ func _respawn():
 	health = max_health
 	weapon_states = [ { "ammo": 30, "reserve": 90 }, { "ammo": 40, "reserve": 120 }, { "ammo": 6, "reserve": 24 } ]
 	velocity = Vector3.ZERO
+	recoil_pitch = 0.0
+	recoil_yaw = 0.0
+	recoil_shot_index = 0
+
+	# Spawn shield — 3 seconds of invincibility
+	spawn_shield = true
+	spawn_shield_timer = 3.0
+	if hud_script and hud_script.has_method("show_spawn_shield"):
+		hud_script.show_spawn_shield()
 
 	# Move to spawn point
 	global_position = GameManager.get_spawn_position()
 	$CollisionShape3D.disabled = false
-	if mesh_core:
-		mesh_core.visible = not is_multiplayer_authority()
+	_sync_death_visual.rpc(false)
 	_update_weapon_models(current_weapon_index)
 	_update_hud()
 
