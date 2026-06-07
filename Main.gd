@@ -22,6 +22,12 @@ func _ready():
 	canvas.add_child(debug_label)
 
 	_log("Main _ready started. is_server=" + str(multiplayer.is_server()))
+	
+	if OS.has_feature("web"):
+		var light = get_node_or_null("DirectionalLight3D")
+		if light:
+			light.shadow_enabled = false
+		get_viewport().scaling_3d_scale = 0.6
 
 	var map_node = $Map
 	if map_node:
