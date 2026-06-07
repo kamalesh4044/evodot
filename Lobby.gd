@@ -89,11 +89,8 @@ func _build_ui():
 	sub.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	title_bg.add_child(sub)
 
-	# ── LEFT PANEL: CLASS SELECTION ──
+	# ── LEFT PANEL: CLASS & SETTINGS ──
 	_build_left_panel()
-
-	# ── CENTER PANEL: MATCH SETTINGS ──
-	_build_center_panel()
 
 	# ── RIGHT PANEL: CONNECT ──
 	_build_right_panel()
@@ -157,50 +154,9 @@ func _make_button(parent: Control, text: String, size: int = 18) -> Button:
 	parent.add_child(b)
 	return b
 
-# ── LEFT PANEL: CLASS ──
+# ── LEFT PANEL: CLASS & SETTINGS ──
 func _build_left_panel():
 	var panel = _make_panel(0.0, 0.0, 0.28, 1.0)
-	var vbox = VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 10)
-	var margin = MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	margin.add_child(vbox)
-	panel.add_child(margin)
-
-	_make_label(vbox, "SELECT CLASS", 20, Color(1.0, 0.4, 0.1))
-	var sep = HSeparator.new(); vbox.add_child(sep)
-
-	var class_data = [
-		["ASSAULT RIFLE", "30 rnd | Auto | Long Range"],
-		["SMG", "40 rnd | Auto | Fast Fire"],
-		["SHOTGUN", "6 rnd | Semi | Close Range"],
-	]
-	for i in range(class_data.size()):
-		var row = VBoxContainer.new()
-		row.add_theme_constant_override("separation", 2)
-		vbox.add_child(row)
-		var btn = _make_button(row, class_data[i][0], 16)
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var desc = Label.new()
-		desc.text = class_data[i][1]
-		desc.add_theme_font_size_override("font_size", 11)
-		desc.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
-		row.add_child(desc)
-		var idx = i
-		btn.pressed.connect(func():
-			current_class = idx
-			_update_model_display()
-			status_label.text = "Class: " + class_data[idx][0]
-		)
-
-# ── CENTER PANEL: MATCH SETTINGS ──
-func _build_center_panel():
-	var panel = _make_panel(0.29, 0.0, 0.71, 1.0)
 	var margin = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 16)
@@ -213,49 +169,67 @@ func _build_center_panel():
 	vbox.add_theme_constant_override("separation", 12)
 	margin.add_child(vbox)
 
-	_make_label(vbox, "MATCH SETTINGS", 20, Color(1.0, 0.4, 0.1))
-	var sep = HSeparator.new(); vbox.add_child(sep)
+	_make_label(vbox, "SELECT CLASS", 18, Color(1.0, 0.4, 0.1))
+	var sep1 = HSeparator.new(); vbox.add_child(sep1)
 
-	# Match Type
+	var class_ob = OptionButton.new()
+	class_ob.add_item("Assault Rifle")
+	class_ob.add_item("SMG")
+	class_ob.add_item("Shotgun")
+	class_ob.custom_minimum_size.y = 36
+	class_ob.add_theme_font_size_override("font_size", 16)
+	class_ob.item_selected.connect(func(idx):
+		current_class = idx
+		_update_model_display()
+		status_label.text = "Class: " + class_ob.get_item_text(idx)
+	)
+	vbox.add_child(class_ob)
+
+	var spacer = Control.new()
+	spacer.custom_minimum_size.y = 12
+	vbox.add_child(spacer)
+
+	_make_label(vbox, "MATCH SETTINGS", 18, Color(1.0, 0.4, 0.1))
+	var sep2 = HSeparator.new(); vbox.add_child(sep2)
+
 	_make_label(vbox, "MATCH TYPE", 14, Color(0.7, 0.7, 0.8))
-	var mt_box = HBoxContainer.new()
-	mt_box.add_theme_constant_override("separation", 8)
-	vbox.add_child(mt_box)
-	var ffa_btn = _make_button(mt_box, "FREE FOR ALL", 14)
-	ffa_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var tdm_btn = _make_button(mt_box, "TEAM DEATHMATCH", 14)
-	tdm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ffa_btn.pressed.connect(func(): GameManager.match_type = "FFA"; status_label.text = "Mode: Free For All")
-	tdm_btn.pressed.connect(func(): GameManager.match_type = "TDM"; status_label.text = "Mode: Team Deathmatch")
+	var mt_ob = OptionButton.new()
+	mt_ob.add_item("Free For All")
+	mt_ob.add_item("Team Deathmatch")
+	mt_ob.custom_minimum_size.y = 36
+	mt_ob.item_selected.connect(func(idx):
+		GameManager.match_type = "FFA" if idx == 0 else "TDM"
+		status_label.text = "Mode: " + mt_ob.get_item_text(idx)
+	)
+	vbox.add_child(mt_ob)
 
-	# Kill Limit
 	_make_label(vbox, "KILL LIMIT", 14, Color(0.7, 0.7, 0.8))
-	var kl_box = HBoxContainer.new()
-	kl_box.add_theme_constant_override("separation", 8)
-	vbox.add_child(kl_box)
-	for limit in [10, 20, 30, 50]:
-		var kb = _make_button(kl_box, str(limit), 16)
-		kb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var lv = limit
-		kb.pressed.connect(func(): GameManager.kill_limit = lv; status_label.text = "Kill limit: " + str(lv))
+	var kl_ob = OptionButton.new()
+	kl_ob.add_item("10 Kills"); kl_ob.set_item_metadata(0, 10)
+	kl_ob.add_item("20 Kills"); kl_ob.set_item_metadata(1, 20)
+	kl_ob.add_item("30 Kills"); kl_ob.set_item_metadata(2, 30)
+	kl_ob.add_item("50 Kills"); kl_ob.set_item_metadata(3, 50)
+	kl_ob.select(2) # Default 30
+	kl_ob.custom_minimum_size.y = 36
+	kl_ob.item_selected.connect(func(idx):
+		GameManager.kill_limit = kl_ob.get_item_metadata(idx)
+		status_label.text = "Kill Limit: " + kl_ob.get_item_text(idx)
+	)
+	vbox.add_child(kl_ob)
 
-	# Round Time
 	_make_label(vbox, "ROUND TIME", 14, Color(0.7, 0.7, 0.8))
-	var rt_box = HBoxContainer.new()
-	rt_box.add_theme_constant_override("separation", 8)
-	vbox.add_child(rt_box)
-	var time_opts = [[180.0, "3 min"], [300.0, "5 min"], [600.0, "10 min"], [0.0, "Unlimited"]]
-	for opt in time_opts:
-		var tb = _make_button(rt_box, opt[1], 14)
-		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var tv = opt[0]
-		var tn = opt[1]
-		tb.pressed.connect(func(): GameManager.round_duration = tv; status_label.text = "Time: " + tn)
-
-	# Removed Bot Settings per user request
-
-# Removed _toggle_bots
-
+	var rt_ob = OptionButton.new()
+	rt_ob.add_item("3 min"); rt_ob.set_item_metadata(0, 180.0)
+	rt_ob.add_item("5 min"); rt_ob.set_item_metadata(1, 300.0)
+	rt_ob.add_item("10 min"); rt_ob.set_item_metadata(2, 600.0)
+	rt_ob.add_item("Unlimited"); rt_ob.set_item_metadata(3, 0.0)
+	rt_ob.select(1) # Default 5 min
+	rt_ob.custom_minimum_size.y = 36
+	rt_ob.item_selected.connect(func(idx):
+		GameManager.round_duration = rt_ob.get_item_metadata(idx)
+		status_label.text = "Time: " + rt_ob.get_item_text(idx)
+	)
+	vbox.add_child(rt_ob)
 # ── RIGHT PANEL: CONNECT ──
 func _build_right_panel():
 	var panel = _make_panel(0.72, 0.0, 1.0, 1.0)

@@ -27,6 +27,7 @@ var spawn_shield_overlay: ColorRect
 var game_over_overlay: Control
 var match_mode_label: Label
 var scope_overlay: ColorRect
+var damage_overlay: ColorRect
 
 # Crosshair settings
 var crosshair_gap: float = 6.0
@@ -57,6 +58,7 @@ func _build_hud():
 	_build_kill_streak_notification()
 	_build_spawn_shield_indicator()
 	_build_scope_overlay()
+	_build_damage_overlay()
 	_build_game_over_overlay()
 	_build_match_mode_label()
 	GameManager.game_over.connect(_on_game_over)
@@ -207,6 +209,19 @@ func _build_reload_indicator():
 	reload_label.visible = false
 	reload_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(reload_label)
+
+func _build_damage_overlay():
+	damage_overlay = ColorRect.new()
+	damage_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	damage_overlay.color = Color(1.0, 0.0, 0.0, 0.0)
+	damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(damage_overlay)
+
+func flash_damage():
+	if is_instance_valid(damage_overlay):
+		damage_overlay.color.a = 0.4
+		var tween = create_tween()
+		tween.tween_property(damage_overlay, "color:a", 0.0, 0.4)
 
 func _build_hitmarker():
 	hitmarker_label = Label.new()

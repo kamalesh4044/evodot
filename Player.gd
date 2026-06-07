@@ -6,15 +6,15 @@ extends CharacterBody3D
 # ──────────────────────────────────────────
 # MOVEMENT CONSTANTS (Now vars so they can scale with the player size)
 # ──────────────────────────────────────────
-var BASE_SPEED := 6.2
-var SPRINT_MULT := 1.45
+var BASE_SPEED := 8.5
+var SPRINT_MULT := 1.0
 var ACCEL := 18.0
 var AIR_ACCEL := 5.0
 var COUNTER_STRAFE_ACCEL := 28.0
 var FRICTION := 14.0
-var JUMP_VEL := 5.7
+var JUMP_VEL := 8.5
 var AIR_CONTROL := 1.15
-var GRAVITY := 15.0
+var GRAVITY := 24.0
 
 # Slide
 const SLIDE_BOOST := 1.55
@@ -821,6 +821,9 @@ func take_damage(amount: int, attacker_id: int):
 		return
 	health -= amount
 	health = max(health, 0)
+
+	if is_multiplayer_authority() and hud_script and hud_script.has_method("flash_damage"):
+		hud_script.flash_damage()
 
 	if health <= 0:
 		_die(attacker_id)
