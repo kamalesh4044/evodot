@@ -23,7 +23,7 @@ func _ready():
 	if "--server" in OS.get_cmdline_args():
 		GameManager.local_player_name = "DedicatedServer"
 		GameManager.is_host = true
-		_start_game()
+		call_deferred("_start_game")
 		return
 		
 	_build_ui()

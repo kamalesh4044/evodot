@@ -33,7 +33,12 @@ func _ready():
 	if GameManager.is_host:
 		_log("Setting up WebSocket Server...")
 		var peer = WebSocketMultiplayerPeer.new()
-		var error = peer.create_server(1337)
+		var port_str = OS.get_environment("PORT")
+		var port = 1337
+		if port_str != "":
+			port = port_str.to_int()
+		var error = peer.create_server(port)
+		_log("WebSocket server listening on port: " + str(port))
 		if error == OK:
 			multiplayer.multiplayer_peer = peer
 			if "--server" not in OS.get_cmdline_args():
