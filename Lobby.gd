@@ -310,7 +310,9 @@ func _build_right_panel():
 	hsh.bg_color = Color(1.0, 0.45, 0.1)
 	host_btn.add_theme_stylebox_override("hover", hsh)
 	host_btn.pressed.connect(_on_host_pressed)
-	vbox.add_child(host_btn)
+	
+	if not OS.has_feature("web"):
+		vbox.add_child(host_btn)
 
 	# JOIN button
 	var join_btn = _make_button(vbox, "JOIN GAME", 22)
