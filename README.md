@@ -80,6 +80,6 @@ This project is licensed under the **MIT License**.
 <br>
 <div align="center">
   <a href="https://github.com/kamalesh4044/evodot">
-    <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fkamalesh4044%2Fevodot&label=✨%20PROJECT%20VIEWS&labelColor=%230d1117&countColor=%2300ff88&style=for-the-badge" alt="Views"/>
+    <img src="https://komarev.com/ghpvc/?username=kamalesh4044-evodot&label=PROJECT+VIEWS&color=00ff88&style=for-the-badge" alt="Views"/>
   </a>
 </div>
